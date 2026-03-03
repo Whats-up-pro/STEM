@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "StudyWatch - Giám sát học sinh học online với AI",
   "main": "index.html",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "deploy": "vercel --prod"
+    "deploy": "vercel --prod",
+    "generate-icons": "node generate-icons.js"
   },
   "keywords": ["education", "monitoring", "ai", "focus", "tracking"],
   "author": "",
@@ -14,6 +16,7 @@
     "cors": "^2.8.5"
   },
   "devDependencies": {
+    "sharp": "^0.33.0",
     "vercel": "^33.0.0"
   }
 }

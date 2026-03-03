@@ -9,8 +9,17 @@ const urlsToCache = [
   '/model/weights.bin',        // ← QUAN TRỌNG: Model weights!
   '/manifest.json',
   '/favicon.svg',
-  '/icon-192.svg',
-  '/icon-512.svg'
+  '/icon-72.png',
+  '/icon-96.png',
+  '/icon-128.png',
+  '/icon-144.png',
+  '/icon-152.png',
+  '/icon-192.png',
+  '/icon-384.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
+  '/favicon-32x32.png',
+  '/favicon-16x16.png'
 ];
 
 // Cài đặt Service Worker
