@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="StudyWatch - Giám sát học tập online với AI">
+    <meta name="theme-color" content="#0E4DA4">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="StudyWatch">
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- Favicons & App Icons -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" href="icon-192.svg">
+    <link rel="apple-touch-icon" sizes="192x192" href="icon-192.svg">
+    <link rel="apple-touch-icon" sizes="512x512" href="icon-512.svg">
+    
+    <title>StudyWatch - Giám Sát Học Tập Online</title>
+    
+    <!-- CÔNG NGHỆ SỪA DỤNG -->
+    <!-- TensorFlow.js: Thư viện Machine Learning chạy trên browser -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+    <!-- Teachable Machine: Model AI nhận dạng trạng thái -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8/dist/teachablemachine-image.min.js"></script>
+    <!-- Chart.js: Biểu đồ thời gian thực -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* Modal Login */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-overlay.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 450px;
+            width: 90%;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-content h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .modal-content p {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+        }
+
+        .server-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+
+        .server-status.connected {
+            border-left: 4px solid #28a745;
+        }
+
+        .server-status.disconnected {
+            border-left: 4px solid #dc3545;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            transition: background 0.5s ease;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: fadeInDown 0.6s ease;
+        }
+
+        header .logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            background: white;
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: inline-block;
+        }
+
+        header .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        header h1 {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: clamp(0.9rem, 2vw, 1.1rem);
+            font-weight: 300;
+            opacity: 0.95;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            animation: fadeInUp 0.8s ease;
+        }
+
+        @media (min-width: 992px) {
+            .main-content {
+                grid-template-columns: 1fr 1.2fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+
+        .card-title {
+            font-size: clamp(1.1rem, 3vw, 1.4rem);
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.5em;
+        }
+
+        #webcam-container {
+            text-align: center;
+        }
+
+        #webcam {
+            border-radius: 15px;
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 4px solid #f0f0f0;
+        }
+
+        #status-container {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        #status {
+            font-size: clamp(1rem, 3vw, 1.3rem);
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        #confidence {
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-card.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+
+        .stat-value {
+            font-size: clamp(1.5rem, 4vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: clamp(0.75rem, 2vw, 0.9rem);
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        #chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+
+        #chart {
+            max-width: 100%;
+        }
+
+        .tips-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .tips-section h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: clamp(1rem, 3vw, 1.2rem);
+        }
+
+        .tips-section ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .tips-section li {
+            padding: 8px 0;
+            color: #555;
+            font-size: clamp(0.85rem, 2vw, 0.95rem);
+            line-height: 1.6;
+        }
+
+        .tips-section li:before {
+            content: "✓ ";
+            color: #4facfe;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .control-label {
+            font-size: clamp(0.9rem, 2vw, 1rem);
+            font-weight: 500;
+            color: #333;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .monitoring-status {
+            font-size: clamp(0.85rem, 2vw, 0.95rem);
+            font-weight: 600;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .monitoring-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .monitoring-status.inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .camera-off-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            border-radius: 15px;
+            z-index: 10;
+            border: 4px solid #f0f0f0;
+            box-sizing: border-box;
+        }
+
+        .camera-off-overlay .icon {
+            font-size: 3em;
+            margin-bottom: 10px;
+        }
+
+        #webcam-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 300px;
+            height: 300px;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        #webcam {
+            border-radius: 15px;
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border: 4px solid #f0f0f0;
+        }
+
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.02);
+            }
+        }
+
+        .focused-state {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%) !important;
+        }
+
+        .distracted-state {
+            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%) !important;
+        }
+
+        .sleepy-state {
+            background: linear-gradient(135deg, #5f2c82 0%, #49a09d 100%) !important;
+        }
+
+        .warning-alert {
+            background: linear-gradient(135deg, #f12711 0%, #f5af19 100%) !important;
+            animation: warning-pulse 1.5s infinite;
+        }
+
+        @keyframes warning-pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.9;
+                transform: scale(1.03);
+            }
+        }
+
+        .alert-banner {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #f12711 0%, #f5af19 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(241, 39, 17, 0.4);
+            z-index: 1000;
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: none;
+            animation: slideInRight 0.5s ease;
+        }
+
+        .alert-banner.show {
+            display: block;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .state-breakdown {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .state-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .state-item.active {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .state-item-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .state-item-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .state-item.focus .state-item-value {
+            color: #11998e;
+        }
+
+        .state-item.distract .state-item-value {
+            color: #ee0979;
+        }
+
+        .state-item.sleepy .state-item-value {
+            color: #5f2c82;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        .tech-info {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        footer {
+            text-align: center;
+            color: white;
+            margin-top: 30px;
+            padding: 20px;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            #chart-container {
+                height: 250px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Modal Đăng Nhập -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal-content">
+            <h2>🎓 Đăng Nhập Học Sinh</h2>
+            <p>Vui lòng nhập thông tin để bắt đầu học</p>
+            <form id="login-form" onsubmit="return handleLogin(event)">
+                <div class="form-group">
+                    <label for="student-id">Mã Số Học Sinh *</label>
+                    <input type="text" id="student-id" placeholder="Ví dụ: 21520001" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-name">Họ và Tên *</label>
+                    <input type="text" id="student-name" placeholder="Nguyễn Văn A" required>
+                </div>
+                <div class="form-group">
+                    <label for="student-class">Lớp</label>
+                    <input type="text" id="student-class" placeholder="SE104.O21">
+                </div>
+                <button type="submit" class="btn-login">Bắt Đầu Học</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Server Status -->
+    <div class="server-status disconnected" id="server-status">
+        <span id="status-text">⚠️ Chưa kết nối server</span>
+    </div>
+
+    <div class="container">
+        <!-- Cảnh báo -->
+        <div class="alert-banner" id="alert-banner">
+            ⚠️ Cảnh báo: Mức độ tập trung thấp! Hãy tập trung lại nhé ^^
+        </div>
+
+        <header>
+            <div class="logo">
+                <img src="icon-192.svg" alt="StudyWatch Logo">
+            </div>
+            <h1>StudyWatch</h1>
+            <p>Giám Sát Học Tập Online - AI Monitoring System</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Column: Camera & Status -->
+            <div>
+                <div class="card" id="webcam-container">
+                    <div class="card-title">
+                        <span class="icon">📹</span>
+                        <span>Camera Giám Sát</span>
+                    </div>
+                    <div id="webcam-wrapper">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <div>Đang khởi động camera...</div>
+                        </div>
+                        <canvas id="webcam" width="300" height="300" style="display:none;"></canvas>
+                        <div class="camera-off-overlay" id="camera-off-overlay" style="display:none;">
+                            <div class="icon">📷</div>
+                            <div style="font-size: 1.1rem; font-weight: 500;">Camera Đã Tắt</div>
+                            <div style="font-size: 0.9rem; opacity: 0.8; margin-top: 5px;">Bật camera để tiếp tục</div>
+                        </div>
+                    </div>
+                    <div id="status-container" style="display:none;">
+                        <div id="status">Đang phân tích...</div>
+                        <div id="confidence">Độ tin cậy: 0%</div>
+                    </div>
+                    <div class="control-panel" style="display:none;" id="control-panel">
+                        <div class="control-row">
+                            <label class="control-label">Camera:</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="camera-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="monitoring-status active" id="camera-status">✓ Đang Bật</span>
+                        </div>
+                        <div class="control-row">
+                            <label class="control-label">Giám Sát:</label>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="monitoring-toggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="monitoring-status active" id="monitoring-status">✓ Đang Bật</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-title">
+                        <span class="icon">📊</span>
+                        <span>Thống Kê Phiên Học</span>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card success">
+                            <div class="stat-value" id="focus-percent">0%</div>
+                            <div class="stat-label">Tập Trung</div>
+                        </div>
+                        <div class="stat-card warning">
+                            <div class="stat-value" id="total-time">0s</div>
+                            <div class="stat-label">Thời Gian</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Phân tích chi tiết 3 trạng thái -->
+                    <div class="state-breakdown">
+                        <div class="state-item focus" id="state-focus">
+                            <div class="state-item-value">0%</div>
+                            <div class="state-item-label">🎯 Tập trung</div>
+                        </div>
+                        <div class="state-item distract" id="state-distract">
+                            <div class="state-item-value">0%</div>
+                            <div class="state-item-label">😕 Mất tập trung</div>
+                        </div>
+                        <div class="state-item sleepy" id="state-sleepy">
+                            <div class="state-item-value">0%</div>
+                            <div class="state-item-label">😴 Buồn ngủ</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Nút xuất dữ liệu -->
+                    <button class="export-btn" onclick="exportData()">📊 Xuất Dữ Liệu</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Chart & Tips -->
+            <div>
+                <div class="card">
+                    <div class="card-title">
+                        <span class="icon">📈</span>
+                        <span>Biểu Đồ Tập Trung Theo Thời Gian</span>
+                    </div>
+                    <div id="chart-container">
+                        <canvas id="chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top: 20px;">
+                    <div class="tips-section">
+                        <h3>💡 Mẹo Học Tập Hiệu Quả</h3>
+                        <ul>
+                            <li>Ngồi thẳng lưng, giữ khoảng cách hợp lý với màn hình</li>
+                            <li>Nghỉ ngơi 5-10 phút sau mỗi 25-30 phút học</li>
+                            <li>Tắt thông báo và các yếu tố gây xao nhãng</li>
+                            <li>Giữ không gian học tập sạch sẽ, thoáng mát</li>
+                            <li>Uống đủ nước và giữ tinh thần thoải mái</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>🌟 Hãy học tập chăm chỉ và giữ tinh thần tập trung! Bạn làm được điều đó! 🌟</p>
+            <div class="tech-info">
+                🚀 Công nghệ: TensorFlow.js • Teachable Machine • Chart.js • Realtime Server Monitoring
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // ========== SERVER CONFIG ==========
+        const API_URL = 'http://localhost:3000/api';
+        let serverConnected = false;
+        let studentInfo = null;
+        let currentSessionId = null;
+
+        let model, webcam, labelContainer, maxPredictions;
+        let focusHistory = [];
+        let totalSeconds = 0;
+        let focusedSeconds = 0;
+        let currentSecondState = null; // Trạng thái hiện tại trong giây này
+        const MAX_HISTORY_SECONDS = 120; // Lưu lịch sử 2 phút
+        let isMonitoring = true; // Trạng thái giám sát
+        let isCameraOn = true; // Trạng thái camera
+        let timerInterval = null; // Lưu interval để có thể dừng
+        let stateHistory = { focus: 0, distracted: 0, sleepy: 0 }; // Đếm số lần xuất hiện
+        let isWarningShown = false; // Tránh spam cảnh báo
+        let sessionStartTime = new Date(); // Thời gian bắt đầu phiên
+        let detailedHistory = []; // Lưu lịch sử chi tiết cho export
+
+        // ========== SERVER FUNCTIONS ==========
+        async function checkServerConnection() {
+            try {
+                const res = await fetch(`${API_URL}/teacher/dashboard-stats`);
+                if (res.ok) {
+                    serverConnected = true;
+                    updateServerStatus(true);
+                    return true;
+                }
+            } catch (error) {
+                serverConnected = false;
+                updateServerStatus(false);
+                return false;
+            }
+        }
+
+        function updateServerStatus(connected) {
+            const statusEl = document.getElementById('server-status');
+            const textEl = document.getElementById('status-text');
+            if (connected) {
+                statusEl.className = 'server-status connected';
+                textEl.textContent = '✅ Đã kết nối server';
+            } else {
+                statusEl.className = 'server-status disconnected';
+                textEl.textContent = '⚠️ Offline mode';
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const studentId = document.getElementById('student-id').value.trim();
+            const studentName = document.getElementById('student-name').value.trim();
+            const studentClass = document.getElementById('student-class').value.trim();
+            
+            if (!studentId || !studentName) {
+                alert('Vui lòng nhập đầy đủ thông tin!');
+                return false;
+            }
+            
+            studentInfo = {
+                student_id: studentId,
+                name: studentName,
+                class: studentClass
+            };
+            
+            // Check server
+            const hasServer = await checkServerConnection();
+            
+            if (hasServer) {
+                try {
+                    // Đăng ký học sinh
+                    const regRes = await fetch(`${API_URL}/student/register`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(studentInfo)
+                    });
+                    
+                    if (!regRes.ok) throw new Error('Đăng ký thất bại');
+                    
+                    // Tạo session ID
+                    currentSessionId = `${studentId}-${Date.now()}`;
+                    
+                    // Bắt đầu session
+                    const sessionRes = await fetch(`${API_URL}/session/start`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            student_id: studentId,
+                            session_id: currentSessionId
+                        })
+                    });
+                    
+                    if (!sessionRes.ok) throw new Error('Không thể tạo session');
+                    
+                    console.log('✅ Đã kết nối server và tạo session:', currentSessionId);
+                } catch (error) {
+                    console.log('⚠️ Không kết nối được server, chuyển sang offline mode');
+                    serverConnected = false;
+                }
+            } else {
+                console.log('📴 Server offline, chạy ở chế độ local');
+            }
+            
+            // Ẩn modal và bắt đầu app
+            document.getElementById('login-modal').classList.add('hidden');
+            
+            // Update header với tên học sinh
+            document.querySelector('header p').textContent = `Xin chào ${studentName} - ${studentClass || 'STEM Student'}`;
+            
+            return false;
+        }
+
+        async function sendFocusDataToServer(state, focusPercent, distractedPercent, sleepyPercent) {
+            if (!serverConnected || !currentSessionId) return;
+            
+            try {
+                await fetch(`${API_URL}/focus/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        state: state,
+                        focus: focusPercent,
+                        distracted: distractedPercent,
+                        sleepy: sleepyPercent
+                    })
+                });
+            } catch (error) {
+                console.error('❌ Lỗi gửi dữ liệu:', error);
+            }
+        }
+
+        async function endSession() {
+            if (!serverConnected || !currentSessionId) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/session/end`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: currentSessionId })
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    console.log('✅ Session kết thúc:', data.summary);
+                }
+            } catch (error) {
+                console.error('❌ Lỗi kết thúc session:', error);
+            }
+        }
+
+        async function init() {
+            try {
+                const URL = "./model/";
+                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+                maxPredictions = model.getTotalClasses();
+
+                const flip = true;
+                webcam = new tmImage.Webcam(300, 300, flip);
+                await webcam.setup();
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+
+                const webcamElement = document.getElementById("webcam");
+                webcamElement.replaceWith(webcam.canvas);
+                webcam.canvas.id = "webcam";
+                webcam.canvas.width = 300;
+                webcam.canvas.height = 300;
+                webcam.canvas.style.display = "block";
+                webcam.canvas.style.borderRadius = "15px";
+                webcam.canvas.style.maxWidth = "100%";
+                webcam.canvas.style.height = "auto";
+                webcam.canvas.style.boxShadow = "0 5px 15px rgba(0,0,0,0.1)";
+                webcam.canvas.style.border = "4px solid #f0f0f0";
+
+                document.querySelector('.loading').style.display = 'none';
+                document.getElementById('status-container').style.display = 'block';
+                document.getElementById('control-panel').style.display = 'flex';
+
+                initChart();
+                startTimer();
+                initMonitoringToggle();
+                loadSettings();
+                console.log('✅ Hệ thống khởi động thành công - Chạy hoàn toàn trên browser!');
+            } catch (error) {
+                console.error("Initialization error:", error);
+                document.querySelector('.loading').innerHTML = 
+                    '<div style="color: #e74c3c;">❌ Lỗi: Không thể khởi động camera. Vui lòng cho phép truy cập camera.</div>';
+            }
+        }
+
+        async function loop() {
+            if (isCameraOn) {
+                webcam.update();
+            }
+            if (isMonitoring && isCameraOn) {
+                await predict();
+            }
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            prediction.sort((a, b) => b.probability - a.probability);
+
+            let topClass = prediction[0].className;
+            let prob = (prediction[0].probability * 100).toFixed(1);
+
+            // ======== PHÂN LOẠI 3 TRẠNG THÁI ========
+            let statusText, stateClass;
+            if (topClass === "Focus") {
+                statusText = "🎯 Đang Tập Trung";
+                stateClass = 'focused-state';
+                currentSecondState = 1; // Tập trung = 1
+                stateHistory.focus++;
+            } else if (topClass === "Distracted") {
+                statusText = "😕 Mất Tập Trung";
+                stateClass = 'distracted-state';
+                currentSecondState = 0; // Mất tập trung = 0
+                stateHistory.distracted++;
+            } else if (topClass === "Sleepy") {
+                statusText = "😴 Buồn Ngủ";
+                stateClass = 'sleepy-state';
+                currentSecondState = 0; // Buồn ngủ = 0
+                stateHistory.sleepy++;
+            } else {
+                statusText = `📊 ${topClass}`;
+                stateClass = 'distracted-state';
+                currentSecondState = 0;
+            }
+            
+            // Lưu lịch sử chi tiết
+            detailedHistory.push({
+                timestamp: new Date().toISOString(),
+                state: topClass,
+                confidence: prob,
+                focusValue: currentSecondState
+            });
+            
+            // Giới hạn dữ liệu (giữ 1000 records gần nhất)
+            if (detailedHistory.length > 1000) {
+                detailedHistory.shift();
+            }
+            
+            document.getElementById("status").innerText = statusText;
+            document.getElementById("confidence").innerText = `Độ tin cậy: ${prob}%`;
+
+            // Update status container color
+            const statusContainer = document.getElementById('status-container');
+            statusContainer.className = stateClass;
+        }
+
+        let chart;
+
+        function initChart() {
+            const ctx = document.getElementById("chart").getContext("2d");
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Mức Độ Tập Trung (2 phút gần nhất)',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 1,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            min: 0, 
+                            max: 1,
+                            ticks: {
+                                callback: function(value) {
+                                    return value === 1 ? 'Tập trung' : value === 0 ? 'Xao nhãng' : '';
+                                }
+                            }
+                        },
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Thời gian (giây)',
+                                font: {
+                                    family: 'Poppins',
+                                    size: 11
+                                }
+                            },
+                            ticks: {
+                                maxTicksLimit: 10,
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: 'Poppins',
+                                    size: 12
+                                }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(context) {
+                                    return 'Giây thứ ' + context[0].label;
+                                },
+                                label: function(context) {
+                                    return context.parsed.y === 1 ? '🎯 Tập trung' : '😕 Mất tập trung';
+                                }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 300
+                    }
+                }
+            });
+        }
+
+        function updateChart() {
+            // Tạo labels với thời gian tương đối (giây trước đó)
+            const startSecond = Math.max(0, totalSeconds - MAX_HISTORY_SECONDS);
+            chart.data.labels = focusHistory.map((_, i) => startSecond + i + 1);
+            chart.data.datasets[0].data = focusHistory;
+            chart.update('none');
+        }
+
+        function updateStats() {
+            if (focusHistory.length === 0) return;
+            
+            // ======== TÍNH % MỨC ĐỘ TẬP TRUNG ========
+            let focusCount = focusHistory.filter(x => x === 1).length;
+            let focusPercent = ((focusCount / focusHistory.length) * 100).toFixed(0);
+            
+            document.getElementById('focus-percent').innerText = focusPercent + '%';
+            
+            // Tính phần trăm chi tiết cho 3 trạng thái
+            let total = stateHistory.focus + stateHistory.distracted + stateHistory.sleepy;
+            if (total > 0) {
+                let focusStatePercent = ((stateHistory.focus / total) * 100).toFixed(0);
+                let distractedPercent = ((stateHistory.distracted / total) * 100).toFixed(0);
+                let sleepyPercent = ((stateHistory.sleepy / total) * 100).toFixed(0);
+                
+                // ======== GỬI DỮ LIỆU LÊN SERVER ========
+                let currentState = 'Focus';
+                if (currentSecondState === 0) {
+                    currentState = stateHistory.distracted > stateHistory.sleepy ? 'Distracted' : 'Sleepy';
+                }
+                sendFocusDataToServer(currentState, parseFloat(focusStatePercent), parseFloat(distractedPercent), parseFloat(sleepyPercent));
+                
+                document.getElementById('state-focus').querySelector('.state-item-value').innerText = focusStatePercent + '%';
+                document.getElementById('state-distract').querySelector('.state-item-value').innerText = distractedPercent + '%';
+                document.getElementById('state-sleepy').querySelector('.state-item-value').innerText = sleepyPercent + '%';
+                
+                // Highlight trạng thái cao nhất
+                document.querySelectorAll('.state-item').forEach(item => item.classList.remove('active'));
+                if (focusStatePercent >= distractedPercent && focusStatePercent >= sleepyPercent) {
+                    document.getElementById('state-focus').classList.add('active');
+                } else if (distractedPercent >= sleepyPercent) {
+                    document.getElementById('state-distract').classList.add('active');
+                } else {
+                    document.getElementById('state-sleepy').classList.add('active');
+                }
+            }
+            
+            // ======== CẢNH BÁO KHI < 60% TẬP TRUNG ========
+            checkFocusWarning(parseInt(focusPercent));
+        }
+        
+        function checkFocusWarning(focusPercent) {
+            const alertBanner = document.getElementById('alert-banner');
+            const statusContainer = document.getElementById('status-container');
+            
+            if (focusPercent < 60 && focusHistory.length >= 10) { // Chỉ cảnh báo sau 10 giây
+                if (!isWarningShown) {
+                    // Hiển thị banner cảnh báo
+                    alertBanner.classList.add('show');
+                    
+                    // Thêm hiệu ứng warning cho status container
+                    statusContainer.classList.add('warning-alert');
+                    
+                    isWarningShown = true;
+                    
+                    // Tự động ẩn sau 5 giây
+                    setTimeout(() => {
+                        alertBanner.classList.remove('show');
+                    }, 5000);
+                }
+            } else if (focusPercent >= 60) {
+                // Reset cảnh báo khi đã cải thiện
+                isWarningShown = false;
+                alertBanner.classList.remove('show');
+                statusContainer.classList.remove('warning-alert');
+            }
+        }
+
+        // ======== XUẤT DỮ LIỆU ========
+        function exportData() {
+            const total = stateHistory.focus + stateHistory.distracted + stateHistory.sleepy;
+            const focusPercent = total > 0 ? ((stateHistory.focus / total) * 100).toFixed(2) : 0;
+            
+            const exportObj = {
+                session: {
+                    startTime: sessionStartTime.toISOString(),
+                    endTime: new Date().toISOString(),
+                    duration: totalSeconds + 's'
+                },
+                summary: {
+                    totalSeconds: totalSeconds,
+                    focusPercentage: focusPercent + '%',
+                    states: {
+                        focus: stateHistory.focus,
+                        distracted: stateHistory.distracted,
+                        sleepy: stateHistory.sleepy
+                    }
+                },
+                detailedHistory: detailedHistory
+            };
+            
+            // Tạo file JSON
+            const dataStr = JSON.stringify(exportObj, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            // Tải file
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `focus-data-${new Date().toISOString().slice(0,10)}.json`;
+            link.click();
+            
+            // Giải phóng bộ nhớ
+            URL.revokeObjectURL(url);
+            
+            alert('✅ Đã xuất dữ liệu thành công!');
+        }
+
+        // ======== LƯU & TẢI CÀI ĐẶT ========
+        function saveSettings() {
+            const settings = {
+                isCameraOn: isCameraOn,
+                isMonitoring: isMonitoring
+            };
+            localStorage.setItem('focusAssistantSettings', JSON.stringify(settings));
+        }
+
+        function loadSettings() {
+            const saved = localStorage.getItem('focusAssistantSettings');
+            if (saved) {
+                const settings = JSON.parse(saved);
+                console.log('✅ Đã tải cài đặt từ localStorage');
+            }
+        }
+
+        // Lưu cài đặt và kết thúc session khi tắt trang
+        window.addEventListener('beforeunload', () => {
+            saveSettings();
+            endSession();
+        });
+
+        // Check server connection khi load
+        window.addEventListener('load', () => {
+            checkServerConnection();
+        });
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                if (!isMonitoring) return; // Không đếm khi tắt giám sát
+                
+                totalSeconds++;
+                let minutes = Math.floor(totalSeconds / 60);
+                let seconds = totalSeconds % 60;
+                let timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+                document.getElementById('total-time').innerText = timeStr;
+                
+                // Ghi nhận trạng thái của giây vừa qua
+                if (currentSecondState !== null) {
+                    focusHistory.push(currentSecondState);
+                    
+                    // Giữ tối đa 120 giây lịch sử
+                    if (focusHistory.length > MAX_HISTORY_SECONDS) {
+                        focusHistory.shift();
+                    }
+                    
+                    updateChart();
+                    updateStats();
+                }
+                
+                // Reset trạng thái cho giây mới
+                currentSecondState = null;
+            }, 1000);
+        }
+
+        function initMonitoringToggle() {
+            const monitoringToggle = document.getElementById('monitoring-toggle');
+            const cameraToggle = document.getElementById('camera-toggle');
+            const monitoringStatusLabel = document.getElementById('monitoring-status');
+            const cameraStatusLabel = document.getElementById('camera-status');
+            const statusContainer = document.getElementById('status-container');
+            const cameraOffOverlay = document.getElementById('camera-off-overlay');
+            
+            // Toggle giám sát
+            monitoringToggle.addEventListener('change', function() {
+                // Kiểm tra camera có đang bật không
+                if (this.checked && !isCameraOn) {
+                    // Không cho bật giám sát khi camera tắt
+                    this.checked = false;
+                    alert('⚠️ Vui lòng bật camera trước khi bật giám sát!');
+                    return;
+                }
+                
+                isMonitoring = this.checked;
+                
+                if (isMonitoring) {
+                    monitoringStatusLabel.textContent = '✓ Đang Bật';
+                    monitoringStatusLabel.className = 'monitoring-status active';
+                    currentSecondState = null; // Reset state
+                } else {
+                    monitoringStatusLabel.textContent = '✗ Đã Tắt';
+                    monitoringStatusLabel.className = 'monitoring-status inactive';
+                    statusContainer.style.background = 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)';
+                    document.getElementById('status').innerText = '⏸️ Tạm Dừng Giám Sát';
+                    document.getElementById('confidence').innerText = '';
+                    currentSecondState = null;
+                }
+            });
+            
+            // Toggle camera
+            cameraToggle.addEventListener('change', async function() {
+                isCameraOn = this.checked;
+                
+                if (isCameraOn) {
+                    // Bật camera - Tạo lại webcam object HOÀN TOÀN MỚI
+                    try {
+                        cameraStatusLabel.textContent = '⏳ Đang bật...';
+                        cameraStatusLabel.className = 'monitoring-status';
+                        
+                        // Tạo webcam object MỚI hoàn toàn (không dùng object cũ đã bị stop)
+                        const flip = true;
+                        webcam = new tmImage.Webcam(300, 300, flip);
+                        await webcam.setup(); // Setup camera với stream mới
+                        await webcam.play(); // Bắt đầu stream
+                        
+                        // Thay thế canvas cũ bằng canvas mới của webcam
+                        const oldCanvas = document.getElementById('webcam');
+                        if (oldCanvas) {
+                            oldCanvas.replaceWith(webcam.canvas);
+                        }
+                        
+                        // Cấu hình lại canvas mới
+                        webcam.canvas.id = 'webcam';
+                        webcam.canvas.width = 300;
+                        webcam.canvas.height = 300;
+                        webcam.canvas.style.display = 'block';
+                        webcam.canvas.style.borderRadius = '15px';
+                        webcam.canvas.style.maxWidth = '100%';
+                        webcam.canvas.style.height = 'auto';
+                        webcam.canvas.style.boxShadow = '0 5px 15px rgba(0,0,0,0.1)';
+                        webcam.canvas.style.border = '4px solid #f0f0f0';
+                        
+                        // Ẩn overlay
+                        cameraOffOverlay.style.display = 'none';
+                        
+                        // Cập nhật status
+                        cameraStatusLabel.textContent = '✓ Đang Bật';
+                        cameraStatusLabel.className = 'monitoring-status active';
+                        
+                        console.log('✅ Camera đã được khởi động lại thành công');
+                    } catch (error) {
+                        console.error('❌ Lỗi khi bật camera:', error);
+                        alert('❌ Không thể bật camera. Vui lòng kiểm tra quyền truy cập.');
+                        this.checked = false;
+                        isCameraOn = false;
+                        cameraStatusLabel.textContent = '✗ Đã Tắt';
+                        cameraStatusLabel.className = 'monitoring-status inactive';
+                    }
+                } else {
+                    // Tắt camera - THẬT SỰ stop stream và giải phóng tài nguyên
+                    cameraStatusLabel.textContent = '✗ Đã Tắt';
+                    cameraStatusLabel.className = 'monitoring-status inactive';
+                    
+                    // Hiển thị overlay GIỮ NGUYÊN KÍCH THƯỚC
+                    const currentCanvas = document.getElementById('webcam');
+                    if (currentCanvas) {
+                        currentCanvas.style.display = 'none';
+                    }
+                    cameraOffOverlay.style.display = 'flex';
+                    
+                    // STOP THẬT SỰ - Dừng tất cả media tracks
+                    if (webcam && webcam.webcam) {
+                        const stream = webcam.webcam.srcObject;
+                        if (stream) {
+                            const tracks = stream.getTracks();
+                            tracks.forEach(track => {
+                                track.stop(); // Dừng track thật sự - ĐÈN LED TẮT
+                                console.log('🔴 Camera track stopped:', track.kind);
+                            });
+                            // Xóa srcObject để giải phóng hoàn toàn
+                            webcam.webcam.srcObject = null;
+                        }
+                    }
+                    
+                    // Tự động tắt giám sát khi tắt camera
+                    if (isMonitoring) {
+                        monitoringToggle.checked = false;
+                        isMonitoring = false;
+                        monitoringStatusLabel.textContent = '✗ Đã Tắt';
+                        monitoringStatusLabel.className = 'monitoring-status inactive';
+                        statusContainer.style.background = 'linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)';
+                        document.getElementById('status').innerText = '📷 Camera Đã Tắt';
+                        document.getElementById('confidence').innerText = '';
+                    }
+                    
+                    currentSecondState = null;
+                    console.log('✅ Camera đã được tắt hoàn toàn');
+                }
+            });
+        }
+
+        init();
+
+        // ======== ĐĂNG KÝ SERVICE WORKER (OFFLINE SUPPORT) ========
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker đã đăng ký:', registration.scope);
+                        console.log('🚀 Ứng dụng có thể chạy OFFLINE!');
+                    })
+                    .catch(error => {
+                        console.log('❌ Service Worker đăng ký thất bại:', error);
+                    });
+            });
+        }
+    </script>
+
+</body>
+
+</html>
